@@ -1,0 +1,67 @@
+{
+  "keyword": "best term insurance plan India",
+  "client_url": "https://www.policybazaar.com/life-insurance/term-insurance/articles/best-term-insurance-plan/",
+  "ai_overview_urls": [
+    "https://www.insurancedekho.com/term-insurance/best-term-insurance-plans",
+    "https://www.coverfox.com/life-insurance/term-insurance/best-term-plan-india/",
+    "https://www.etmoney.com/learn/term-life-insurance/best-term-insurance-plans-in-india/"
+  ],
+  "analysis": {
+    "format_comparison": {
+      "client_word_count": 1850,
+      "avg_competitor_word_count": 3200,
+      "client_has_faq": false,
+      "competitors_with_faq": 3,
+      "client_has_table": true,
+      "competitors_with_table": 3,
+      "client_has_numbered_list": true,
+      "client_has_bullet_list": true
+    },
+    "content_gaps": [
+      {
+        "gap": "FAQ Section Missing",
+        "detail": "All 3 AI Overview sources include a dedicated FAQ section answering questions like 'Which term insurance has highest claim settlement ratio?', 'Is term insurance worth it for salaried people?', and 'What happens if I miss a premium?'. The client article has no FAQ content, which is a key signal Google looks for when generating AI Overviews."
+      },
+      {
+        "gap": "Claim Settlement Ratio Comparison Table",
+        "detail": "Competitors include an up-to-date comparison table showing claim settlement ratios (CSR) for each insurer (e.g. LIC: 98.62%, HDFC Life: 98.01%). The client article mentions CSR only in passing without a structured data table."
+      },
+      {
+        "gap": "Premium Calculator or Cost Examples",
+        "detail": "Two of three competitor pages include a premium calculator widget or a cost example table (e.g. '₹1 Cr coverage for a 30-year-old non-smoker = ₹650/month'). The client article lacks any price-anchoring content."
+      },
+      {
+        "gap": "Word Count Gap (~1,350 words short)",
+        "detail": "Client article averages 1,850 words vs competitor average of 3,200 words. The missing depth is primarily in insurer-specific plan breakdowns, eligibility criteria, and tax benefit sections (Section 80C/10(10D))."
+      },
+      {
+        "gap": "Rider Add-on Explanation",
+        "detail": "Competitor articles include a dedicated section explaining popular riders (critical illness rider, accidental death benefit, waiver of premium) with cost impact. The client article does not cover riders at all."
+      }
+    ],
+    "recommendations": [
+      {
+        "title": "Add a 10-Question FAQ Section",
+        "detail": "Write a dedicated FAQ block answering: (1) Which term plan has the highest CSR in India 2024? (2) What is the right coverage amount for my salary? (3) Is online term insurance better than offline? (4) Can NRIs buy term insurance in India? (5) What documents are needed? This directly targets the FAQ-rich format Google favours for AI Overviews."
+      },
+      {
+        "title": "Insert a Claim Settlement Ratio Comparison Table",
+        "detail": "Add a 6-column table: Insurer | Plan Name | CSR (2023-24) | Max Sum Assured | Policy Term | Solvency Ratio. Source data from IRDAI's annual report. Update annually and add a 'Last updated' tag so Google sees it as fresh."
+      },
+      {
+        "title": "Add Real Premium Cost Examples",
+        "detail": "Include a table showing monthly premium for a ₹1 Cr cover across 3 age brackets (25, 30, 35) and 2 smoking statuses. Even static numbers anchor the reader and reduce bounce rate from users who otherwise leave to use a calculator."
+      },
+      {
+        "title": "Expand to 2,800–3,200 Words with Insurer-Specific Sections",
+        "detail": "Add a 150–200 word section for each of the top 5 recommended plans (LIC Tech Term, HDFC Click 2 Protect, Max Smart Secure Plus, Tata AIA Sampoorna Raksha, ICICI iProtect Smart) covering unique features, best-for profile, and any exclusions."
+      },
+      {
+        "title": "Add a Rider Comparison Section",
+        "detail": "Create a section titled 'Term Insurance Riders Explained' covering: critical illness rider (what conditions, typical cost +₹200–500/month), accidental death benefit, waiver of premium on disability. A bullet-point format with cost impact makes this highly scannable and LLM-friendly."
+      }
+    ],
+    "executive_summary": "The client article is structurally solid but significantly outmatched in depth and format by the AI Overview sources. The three most critical gaps are the absence of an FAQ section (present in all competitor articles), no claim settlement ratio comparison table, and a 1,350-word content deficit. Addressing these three items alone should materially improve the article's chance of appearing in Google's AI Overview for this keyword."
+  },
+  "generated_at": "2025-07-14T11:23:45.123456"
+}
