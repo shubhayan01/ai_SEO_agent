@@ -20,9 +20,12 @@ MAX_FREE_RUNS = 3
 
 
 def _machine_id():
-   
+    # Use platform.node() (hostname) as the primary stable identifier,
+    # with getnode() only as a secondary salt. Fallback to hostname-only
+    # if getnode() returns a multicast (random) MAC (bit 0 of first octet set).
     node_int = uuid.getnode()
-    
+    # If the least-significant bit of the most-significant byte is 1, the MAC
+    # was randomly generated — skip it.
     node_is_random = bool(node_int >> 40 & 1)
     raw = platform.node() + ("" if node_is_random else str(node_int))
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
@@ -181,14 +184,13 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
 
         page_text_lower = text.lower()
 
-        
+        # like "computer", "computed", etc.
         import re
         has_calculator = (
             any(w in page_text_lower for w in ["calculator", "calculate"])
             or bool(re.search(r'\bcompute\b', page_text_lower))
         )
 
-        
         return {
             "url": url,
             "word_count": word_count,
@@ -224,18 +226,32 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
 def analyse_with_llm(keyword: str, client_data: dict, competitor_data: list) -> dict:
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
     openai_key    = os.getenv("OPENAI_API_KEY", "")
+    groq_key      = os.getenv("GROQ_API_KEY", "")
+    gemini_key    = os.getenv("GEMINI_API_KEY", "")
+    ollama_model  = os.getenv("OLLAMA_MODEL", "")  # e.g. "llama3" — no key needed
+
     if anthropic_key:
         return _claude_analyse(keyword, client_data, competitor_data, anthropic_key)
     elif openai_key:
         return _openai_analyse(keyword, client_data, competitor_data, openai_key)
+    elif groq_key:
+        return _groq_analyse(keyword, client_data, competitor_data, groq_key)
+    elif gemini_key:
+        return _gemini_analyse(keyword, client_data, competitor_data, gemini_key)
+    elif ollama_model:
+        return _ollama_analyse(keyword, client_data, competitor_data, ollama_model)
     else:
         raise EnvironmentError(
-            "No LLM API key found. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in your .env file."
+            "No LLM API key found. Set one of the following in your .env file:\n"
+            "  ANTHROPIC_API_KEY  - Claude (paid)\n"
+            "  OPENAI_API_KEY     - GPT-4o-mini (paid)\n"
+            "  GROQ_API_KEY       - Groq/Llama3 (free) -> https://console.groq.com\n"
+            "  GEMINI_API_KEY     - Gemini (free) -> https://aistudio.google.com\n"
+            "  OLLAMA_MODEL       - Local Ollama model, e.g. llama3 (free, offline)\n"
         )
 
 
 def _build_prompt(keyword, client_data, competitor_data):
-    
     SAMPLE_CHARS = 800
 
     comp_summaries = ""
@@ -301,8 +317,121 @@ Respond ONLY in this JSON format (no markdown fences):
 }}"""
 
 
+
+def _groq_analyse(keyword, client_data, competitor_data, api_key):
+    """Groq is OpenAI-API-compatible — uses the openai SDK with a custom base_url."""
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+
+    # Try with full prompt first, fall back to a shorter prompt if JSON is truncated
+    for attempt, prompt in enumerate([
+        _build_prompt(keyword, client_data, competitor_data),
+        _build_prompt_short(keyword, client_data, competitor_data),
+    ], 1):
+        try:
+            resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an SEO content strategist. "
+                            "Always respond with valid JSON only. No markdown, no extra text."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=4000,
+                temperature=0.1,
+            )
+            return _parse_llm_json(resp.choices[0].message.content, "Groq")
+        except RuntimeError:
+            if attempt == 2:
+                raise
+            print("  [INFO] Full prompt truncated — retrying with shorter prompt …")
+
+
+def _gemini_analyse(keyword, client_data, competitor_data, api_key):
+    """Google Gemini via its REST API — no extra SDK needed."""
+    import urllib.request
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-1.5-flash:generateContent?key={api_key}"
+    )
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": _build_prompt(keyword, client_data, competitor_data)}]}],
+        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.2},
+    }).encode()
+    req = urllib.request.Request(url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read())
+    raw = data["candidates"][0]["content"]["parts"][0]["text"]
+    return _parse_llm_json(raw, "Gemini")
+
+
+def _ollama_analyse(keyword, client_data, competitor_data, model):
+    """Local Ollama — must have `ollama serve` running and the model pulled."""
+    payload = json.dumps({
+        "model": model,
+        "prompt": _build_prompt(keyword, client_data, competitor_data),
+        "stream": False,
+    }).encode()
+    req = requests.post(
+        "http://localhost:11434/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=120,
+    )
+    req.raise_for_status()
+    raw = req.json().get("response", "")
+    return _parse_llm_json(raw, f"Ollama({model})")
+
+
+def _build_prompt_short(keyword, client_data, competitor_data):
+    """Condensed prompt used as fallback when the full prompt causes JSON truncation."""
+    comp_lines = ""
+    for i, c in enumerate(competitor_data, 1):
+        h2s = "; ".join(c["headings"]["h2"][:4]) or "none"
+        comp_lines += (
+            f"Competitor {i}: words={c['word_count']}, faq={c['has_faq']}, "
+            f"table={c['has_table']}, h2s=[{h2s}]\n"
+        )
+
+    return f'''You are an SEO content strategist. Respond ONLY in valid JSON, no markdown.
+
+KEYWORD: "{keyword}"
+CLIENT: words={client_data["word_count"]}, faq={client_data["has_faq"]}, table={client_data["has_table"]}
+COMPETITORS:
+{comp_lines}
+
+Return this exact JSON structure:
+{{
+  "format_comparison": {{
+    "client_word_count": {client_data["word_count"]},
+    "avg_competitor_word_count": 0,
+    "client_has_faq": {str(client_data["has_faq"]).lower()},
+    "competitors_with_faq": 0,
+    "client_has_table": {str(client_data["has_table"]).lower()},
+    "competitors_with_table": 0,
+    "client_has_numbered_list": {str(client_data["has_numbered_list"]).lower()},
+    "client_has_bullet_list": {str(client_data["has_bullet_list"]).lower()}
+  }},
+  "content_gaps": [
+    {{"gap": "Gap 1 title", "detail": "Specific explanation of what is missing"}},
+    {{"gap": "Gap 2 title", "detail": "Specific explanation of what is missing"}},
+    {{"gap": "Gap 3 title", "detail": "Specific explanation of what is missing"}}
+  ],
+  "recommendations": [
+    {{"title": "Action 1", "detail": "Concrete steps to take"}},
+    {{"title": "Action 2", "detail": "Concrete steps to take"}},
+    {{"title": "Action 3", "detail": "Concrete steps to take"}}
+  ],
+  "executive_summary": "2-3 sentence plain English summary of the key gaps and recommendations."
+}}'''
+
 def _parse_llm_json(raw: str, source: str) -> dict:
-    """FIX #3: Centralised JSON parsing with error handling for LLM output."""
+    """Centralised JSON parsing with error handling for LLM output."""
     cleaned = raw.strip().replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(cleaned)
@@ -340,7 +469,6 @@ def _openai_analyse(keyword, client_data, competitor_data, api_key):
 # ──────────────────────────────────────────────
 # REPORT GENERATION
 # ──────────────────────────────────────────────
-
 
 def generate_report(keyword, ai_overview_urls, client_data,
                     competitor_data, analysis, output_path):
@@ -435,8 +563,7 @@ def generate_report(keyword, ai_overview_urls, client_data,
     add_heading("Identified Content Gaps")
     for gap in analysis.get("content_gaps", []):
         p = doc.add_paragraph(style="List Bullet")
-       
-
+        # value of add_run() which was being discarded.
         gap_run = p.add_run(gap.get("gap", "") + ": ")
         gap_run.bold = True
         p.add_run(gap.get("detail", ""))
@@ -453,10 +580,6 @@ def generate_report(keyword, ai_overview_urls, client_data,
     doc.save(output_path)
     print(f"[REPORT] Saved → {output_path}")
 
-
-# ──────────────────────────────────────────────
-# MAIN
-# ──────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="AI Overview Content Gap Agent")
@@ -477,7 +600,6 @@ def main():
     )
     args = parser.parse_args()
 
-    
     output_path = args.output
     if not output_path.lower().endswith(".docx"):
         output_path += ".docx"
@@ -508,11 +630,10 @@ def main():
         if not ai_urls:
             print("  No AI Overview URLs found. Try a different keyword or use a VPN set to India.")
             sys.exit(0)
-       
+        # that appeared at the top of Step 2 in the original code.
         comp_files = [None] * len(ai_urls)
 
     # ── Step 2: Scrape competitors ────────────────────────────────────────
-    
     print(f"\nStep 2/4 – Processing {len(ai_urls)} competitor page(s) …")
 
     competitor_data = []
@@ -520,7 +641,6 @@ def main():
         print(f"  ↳ {url}")
         competitor_data.append(scrape_url(url, mock_html_path=fpath))
         if fpath is None:
-            
             time.sleep(1)
 
     # ── Step 3: Scrape client ─────────────────────────────────────────────
@@ -533,7 +653,6 @@ def main():
             sys.exit(1)
         client_data = scrape_url(args.client_url, mock_html_path=client_mock)
     else:
-       
         time.sleep(1)
         client_data = scrape_url(args.client_url)
 
@@ -542,7 +661,7 @@ def main():
     analysis = analyse_with_llm(args.keyword, client_data, competitor_data)
 
     # ── Outputs ───────────────────────────────────────────────────────────
-    
+    # of whether the output filename contains ".docx" or not.
     json_path = os.path.splitext(output_path)[0] + ".json"
 
     with open(json_path, "w") as f:
@@ -555,7 +674,6 @@ def main():
         }, f, indent=2)
     print(f"[JSON]   Saved → {json_path}")
 
-    
     generate_report(
         keyword=args.keyword,
         ai_overview_urls=ai_urls,
