@@ -16,7 +16,7 @@ load_dotenv()
 import platform, uuid
 
 USAGE_FILE = os.path.join(os.path.dirname(__file__), ".usage_state")
-MAX_FREE_RUNS = 8
+MAX_FREE_RUNS = 3
 
 
 def _machine_id():
