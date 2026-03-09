@@ -4,5 +4,5 @@ python-dotenv
 anthropic
 openai
 flask
-flask-cors
+flask-cors 
 python-docx
