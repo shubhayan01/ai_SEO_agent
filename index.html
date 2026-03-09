@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1019,4 +1020,1082 @@ function resetUI() {
 updateCmd();
 </script>
 </body>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Overview Content Gap Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface-2: #181c22;
+    --surface-3: #1f242d;
+    --border: #252b35;
+    --border-subtle: #1a1f27;
+    --accent: #3b82f6;
+    --accent-dim: rgba(59,130,246,0.12);
+    --accent-glow: rgba(59,130,246,0.25);
+    --green: #10b981;
+    --green-dim: rgba(16,185,129,0.1);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.1);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.1);
+    --text: #e2e8f0;
+    --text-2: #94a3b8;
+    --text-3: #475569;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59,130,246,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(16,185,129,0.04) 0%, transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 40px 0 36px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 40px;
+    gap: 20px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 100px;
+    padding: 4px 12px;
+    margin-bottom: 14px;
+  }
+  .badge::before { content: '●'; font-size: 8px; }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 4vw, 36px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  h1 span { color: var(--accent); }
+
+  .header-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-2);
+    font-weight: 300;
+  }
+
+  .cmd-pill {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .cmd-pill strong { color: var(--green); }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:focus-within { border-color: rgba(59,130,246,0.35); }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .icon-blue  { background: var(--accent-dim); }
+  .icon-green { background: var(--green-dim); }
+  .icon-amber { background: var(--amber-dim); }
+
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-bottom: 7px;
+    letter-spacing: 0.01em;
+  }
+  label .required { color: var(--accent); margin-left: 3px; }
+  label .hint { font-weight: 300; color: var(--text-3); font-style: italic; }
+
+  input[type="text"], input[type="url"], select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus, input[type="url"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  input::placeholder { color: var(--text-3); }
+
+  select {
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px;
+  }
+  select option { background: var(--surface-2); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width: 580px) { .row-2 { grid-template-columns: 1fr; } }
+
+  /* ── Generic toggle row (options section) ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .toggle-info { flex: 1; }
+  .toggle-label { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .toggle-desc  { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  /* ── Toggle switch component ── */
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; margin-left: 16px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text-3);
+    top: 2px; left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .toggle-track::after { transform: translateX(18px); background: #fff; }
+
+  /* ── Client URL field toggle header ── */
+  .field-toggle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .field-toggle-header label { margin-bottom: 0; }
+
+  /* animated expand */
+  .client-url-input {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.2s ease;
+    margin-top: 0;
+  }
+  .client-url-input.open {
+    max-height: 60px;
+    opacity: 1;
+    margin-top: 2px;
+  }
+
+  /* ── Progress ── */
+  .run-status {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .run-status.visible { display: block; }
+
+  .run-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+  .step {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; color: var(--text-3);
+    font-family: var(--font-mono);
+    transition: color 0.2s;
+  }
+  .step.active { color: var(--text); }
+  .step.done   { color: var(--green); }
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .step.active .step-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .step.done   .step-dot { background: var(--green); }
+
+  .log-box {
+    display: none;
+    margin-top: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-3);
+    max-height: 160px;
+    overflow-y: auto;
+    line-height: 1.7;
+  }
+  .log-box.visible { display: block; }
+  .log-line { white-space: pre-wrap; word-break: break-all; }
+  .log-line.ok   { color: var(--green); }
+  .log-line.warn { color: var(--amber); }
+  .log-line.err  { color: var(--red); }
+
+  /* ── Command preview ── */
+  .cmd-preview {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.8;
+    color: var(--text-2);
+    word-break: break-all;
+    margin-top: 20px;
+  }
+  .cmd-preview .cmd-python { color: var(--amber); }
+  .cmd-preview .cmd-flag   { color: var(--accent); }
+  .cmd-preview .cmd-val    { color: var(--green); }
+
+  /* ── Output ── */
+  .output-section { display: none; animation: fadeUp 0.35s ease; }
+  .output-section.visible { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  @media(max-width: 620px) { .result-grid { grid-template-columns: 1fr 1fr; } }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .metric-val {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-val.green { color: var(--green); }
+  .metric-val.amber { color: var(--amber); }
+  .metric-val.blue  { color: var(--accent); }
+  .metric-label { font-size: 12px; color: var(--text-3); font-weight: 500; }
+
+  .gap-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .gap-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 16px;
+  }
+  .gap-item .gap-title  { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+  .gap-item .gap-detail { font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+
+  .rec-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .rec-item {
+    display: flex; gap: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .rec-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.25);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .rec-title  { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+  .rec-detail { font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+
+  .exec-summary {
+    background: linear-gradient(135deg, var(--surface-2), var(--surface));
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-2);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .exec-summary::before {
+    content: '"';
+    position: absolute;
+    top: -10px; left: 18px;
+    font-size: 80px;
+    color: rgba(59,130,246,0.08);
+    font-family: Georgia, serif;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .fmt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .fmt-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-3);
+    color: var(--text-3);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .fmt-table th:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .fmt-table th:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+  .fmt-table td { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-2); }
+  .fmt-table td:first-child { color: var(--text); font-weight: 500; }
+  .fmt-table tr:last-child td { border-bottom: none; }
+
+  .yes { color: var(--green) !important; font-weight: 600; }
+  .no  { color: var(--text-3) !important; }
+
+  .dl-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font-body);
+    font-size: 14px; font-weight: 500;
+    border-radius: var(--radius);
+    padding: 11px 22px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(59,130,246,0.3);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: #2563eb;
+    box-shadow: 0 4px 20px rgba(59,130,246,0.45);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface-3); color: var(--text); border-color: var(--accent); }
+
+  .btn-run {
+    width: 100%; padding: 15px; font-size: 15px; font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 4px 24px rgba(59,130,246,0.3);
+    transition: all 0.15s;
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .btn-run:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(59,130,246,0.45);
+  }
+  .btn-run:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .error-banner {
+    display: none;
+    background: var(--red-dim);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: #fca5a5;
+    margin-bottom: 20px;
+    line-height: 1.55;
+  }
+  .error-banner.visible { display: block; }
+  .error-banner code {
+    background: rgba(239,68,68,0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%) scale(0.9);
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    font-size: 11.5px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 100;
+  }
+  [data-tip]:hover::after { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  .url-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .url-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12.5px; font-family: var(--font-mono);
+    color: var(--text-2);
+    overflow: hidden;
+  }
+  .url-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .url-num {
+    width: 20px; height: 20px;
+    background: var(--surface-3); border-radius: 4px;
+    font-size: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3); flex-shrink: 0; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-left">
+      <div class="badge">Justwords · Stage 1</div>
+      <h1>AI Overview<br /><span>Content Gap</span> Agent</h1>
+      <p class="header-sub">Analyse competitor AI Overview sources and surface actionable content gaps.</p>
+    </div>
+    <div class="cmd-pill">python <strong>server.py</strong></div>
+  </header>
+
+
+ 
+
+  <!-- ── 02 Inputs ── -->
+  <div class="section-label">02 · Target &amp; Keyword</div>
+
+  <div class="card">
+    <div class="card-title">
+      <span class="icon icon-green">🔍</span>
+      Analysis Parameters
+    </div>
+
+    <!-- Keyword -->
+    <div class="field">
+      <label>Search Keyword <span class="required">*</span> <span class="hint">— e.g. "best term insurance plan India"</span></label>
+      <input type="text" id="keyword" placeholder="best term insurance plan India" />
+    </div>
+
+    <!-- Client URL with toggle -->
+    <div class="field">
+      <div class="field-toggle-header">
+        <label style="margin-bottom:0;">
+          Client Article URL
+          <span class="hint" style="margin-left:6px;">— toggle on to compare against your own article</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="clientUrlToggle" onchange="toggleClientUrl()" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <!-- Animated slide-down input -->
+      <div class="client-url-input" id="clientUrlField">
+        <input type="url" id="clientUrl" placeholder="https://yourdomain.com/article-slug" />
+      </div>
+    </div>
+
+    <!-- Output + Mock -->
+    <div class="row-2">
+      <div class="field">
+        <label>Output Filename <span class="hint">— .docx/.json appended automatically</span></label>
+        <input type="text" id="outputName" placeholder="gap_report" value="gap_report" />
+      </div>
+      <div class="field">
+        <label>Mock HTML Dir <span class="hint" data-tip="Leave blank for live scraping">— optional</span></label>
+        <input type="text" id="mockHtmlDir" placeholder="mock_html/" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 03 Options ── -->
+  <div class="section-label">03 · Options</div>
+
+  <div class="card" style="padding-top:16px;padding-bottom:16px;">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Show live log</div>
+        <div class="toggle-desc">Display terminal output from agent.py in the UI</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="showLog" checked /><span class="toggle-track"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">India locale (gl=in, hl=en)</div>
+        <div class="toggle-desc">Target Google India results — recommended</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="indiaLocale" checked /><span class="toggle-track"></span></label>
+    </div>
+  </div>
+
+  <!-- ── 04 Command preview ── -->
+  <div class="section-label">04 · Command Preview</div>
+
+  <div class="card" style="padding:20px 24px;">
+    <div class="card-title" style="margin-bottom:0;font-size:13px;color:var(--text-2);font-family:var(--font-mono);font-weight:400;">
+      Generated CLI command — copy &amp; run manually if preferred
+    </div>
+    <div class="cmd-preview" id="cmdPreview">
+      <span class="cmd-python">python agent.py</span>
+      <span class="cmd-flag"> --keyword</span> <span class="cmd-val">"…"</span>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="copyCommand()" id="copyBtn">📋 Copy Command</button>
+    </div>
+  </div>
+
+  <!-- ── Run ── -->
+  <button class="btn-run" id="runBtn" onclick="runAnalysis()">
+    <span id="runBtnIcon">⚡</span>
+    <span id="runBtnText">Run Analysis</span>
+  </button>
+
+  <!-- ── Error ── -->
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- ── Progress ── -->
+  <div class="run-status" id="runStatus">
+    <div class="run-title">
+      <div class="spinner"></div>
+      Analysis in progress…
+    </div>
+    <div class="steps">
+      <div class="step" id="s1"><div class="step-dot"></div>Step 1 / 4 — Fetching AI Overview URLs via SERP</div>
+      <div class="step" id="s2"><div class="step-dot"></div>Step 2 / 4 — Scraping competitor pages</div>
+      <div class="step" id="s3"><div class="step-dot"></div>Step 3 / 4 — Scraping client article</div>
+      <div class="step" id="s4"><div class="step-dot"></div>Step 4 / 4 — Running LLM gap analysis</div>
+    </div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <!-- ── Output ── -->
+  <div class="output-section" id="outputSection">
+
+    <div class="section-label">05 · Results</div>
+
+    <div class="exec-summary" id="execSummary"></div>
+
+    <div class="result-grid" id="metricsGrid"></div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon icon-blue">🌐</span> AI Overview Source URLs</div>
+      <ul class="url-list" id="urlList"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon icon-amber">📊</span> Content Format Comparison</div>
+      <table class="fmt-table">
+        <thead>
+          <tr><th>Dimension</th><th>Your Article</th><th>AI Overview Sources</th></tr>
+        </thead>
+        <tbody id="fmtBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon icon-amber">⚠️</span> Identified Content Gaps</div>
+      <ul class="gap-list" id="gapList"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon icon-green">✅</span> Actionable Recommendations</div>
+      <ul class="rec-list" id="recList"></ul>
+    </div>
+
+    <div class="dl-row">
+      <button class="btn btn-primary" onclick="downloadJSON()">⬇ Download JSON</button>
+      <button class="btn btn-ghost"   onclick="resetUI()">↩ New Analysis</button>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────────────────────────────────────────
+// Client URL toggle — smooth expand/collapse
+// ─────────────────────────────────────────────
+function toggleClientUrl() {
+  const on    = document.getElementById('clientUrlToggle').checked;
+  const field = document.getElementById('clientUrlField');
+  const input = document.getElementById('clientUrl');
+  if (on) {
+    field.classList.add('open');
+    setTimeout(() => input.focus(), 300);
+  } else {
+    field.classList.remove('open');
+    input.value = '';
+  }
+  updateCmd();
+}
+
+// ─────────────────────────────────────────────
+// Live command preview
+// ─────────────────────────────────────────────
+function updateCmd() {
+  const kw      = document.getElementById('keyword').value.trim()    || '…';
+  const out     = document.getElementById('outputName').value.trim() || 'gap_report';
+  const mock    = document.getElementById('mockHtmlDir').value.trim();
+  const withUrl = document.getElementById('clientUrlToggle').checked;
+  const url     = document.getElementById('clientUrl').value.trim()  || '…';
+
+  let cmd = `<span class="cmd-python">python agent.py</span>`;
+  cmd += `<span class="cmd-flag"> --keyword</span> <span class="cmd-val">"${esc(kw)}"</span>`;
+  if (withUrl) {
+    cmd += `<span class="cmd-flag"> --client-url</span> <span class="cmd-val">"${esc(url)}"</span>`;
+  }
+  cmd += `<span class="cmd-flag"> --output</span> <span class="cmd-val">"${esc(out)}.docx"</span>`;
+  if (mock) {
+    cmd += `<span class="cmd-flag"> --mock-html-dir</span> <span class="cmd-val">"${esc(mock)}"</span>`;
+  }
+  document.getElementById('cmdPreview').innerHTML = cmd;
+}
+
+['keyword','clientUrl','outputName','mockHtmlDir'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updateCmd));
+
+// ─────────────────────────────────────────────
+// Provider hint
+// ─────────────────────────────────────────────
+function updateProviderHint() {
+  const p = document.getElementById('llmProvider').value;
+  const labels = {
+    anthropic: 'Anthropic API Key',
+    openai:    'OpenAI API Key',
+    groq:      'Groq API Key — free at console.groq.com',
+    gemini:    'Gemini API Key — free at aistudio.google.com',
+    ollama:    'Ollama Model Name (e.g. llama3)',
+  };
+  const placeholders = {
+    anthropic: 'sk-ant-api03-…',
+    openai:    'sk-…',
+    groq:      'gsk_…',
+    gemini:    'AIza…',
+    ollama:    'llama3',
+  };
+  document.getElementById('llmKeyLabel').textContent = labels[p];
+  document.getElementById('llmKey').placeholder      = placeholders[p];
+}
+
+// ─────────────────────────────────────────────
+// Copy helpers
+// ─────────────────────────────────────────────
+function copyCommand() {
+  const raw = document.getElementById('cmdPreview').textContent;
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Command', 1800);
+  });
+}
+
+function copyEnv() {
+  const provider = document.getElementById('llmProvider').value;
+  const llmKey   = document.getElementById('llmKey').value;
+  const serpProv = document.getElementById('serpProvider').value;
+  const serpKey  = document.getElementById('serpKey').value;
+  const envMap   = { anthropic:'ANTHROPIC_API_KEY', openai:'OPENAI_API_KEY',
+                     groq:'GROQ_API_KEY', gemini:'GEMINI_API_KEY', ollama:'OLLAMA_MODEL' };
+  const serpMap  = { serpapi:'SERPAPI_KEY', serper:'SERPER_KEY' };
+  const lines    = `${envMap[provider]}=${llmKey}\n${serpMap[serpProv]}=${serpKey}`;
+  navigator.clipboard.writeText(lines).then(() => {
+    const btn = document.getElementById('envBtn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📄 Copy .env snippet', 1800);
+  });
+}
+
+// ─────────────────────────────────────────────
+// UI state helpers
+// ─────────────────────────────────────────────
+function showError(msg) {
+  const b = document.getElementById('errorBanner');
+  b.innerHTML = `<strong>⚠ Error</strong><br>${msg}`;
+  b.classList.add('visible');
+}
+function hideError() {
+  document.getElementById('errorBanner').classList.remove('visible');
+}
+function setStep(active) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('s' + i);
+    el.className = 'step' + (i < active ? ' done' : i === active ? ' active' : '');
+  }
+}
+function appendLog(line) {
+  if (!document.getElementById('showLog').checked) return;
+  const box = document.getElementById('logBox');
+  box.classList.add('visible');
+  const d = document.createElement('div');
+  d.className = 'log-line' +
+    (line.includes('[WARN]') || line.includes('ERROR') ? ' warn' : '') +
+    (line.includes('✅') || line.includes('[REPORT]') || line.includes('[JSON]') ? ' ok' : '');
+  d.textContent = line;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ─────────────────────────────────────────────
+// Validation
+// ─────────────────────────────────────────────
+function validate() {
+  const errs = [];
+  if (!document.getElementById('keyword').value.trim())
+    errs.push('Keyword is required.');
+  const toggleOn = document.getElementById('clientUrlToggle').checked;
+  if (toggleOn && !document.getElementById('clientUrl').value.trim())
+    errs.push('Client Article URL is required when the toggle is on.');
+  return errs;
+}
+
+// ─────────────────────────────────────────────
+// Main run — calls Flask server
+// ─────────────────────────────────────────────
+let _lastResult = null;
+
+async function runAnalysis() {
+  hideError();
+  const errs = validate();
+  if (errs.length) { showError(errs.join('<br>')); return; }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('runBtnText').textContent = 'Running…';
+  document.getElementById('runBtnIcon').textContent = '⏳';
+  document.getElementById('outputSection').classList.remove('visible');
+
+  const logBox = document.getElementById('logBox');
+  logBox.innerHTML = '';
+  logBox.classList.remove('visible');
+
+  const status = document.getElementById('runStatus');
+  status.classList.add('visible');
+  setStep(1);
+
+  const toggleOn = document.getElementById('clientUrlToggle').checked;
+
+  const payload = {
+    keyword:     document.getElementById('keyword').value.trim(),
+    clientUrl:   toggleOn ? document.getElementById('clientUrl').value.trim() : '',
+    outputName:  document.getElementById('outputName').value.trim() || 'gap_report',
+    mockHtmlDir: document.getElementById('mockHtmlDir').value.trim(),
+  };
+
+  let jobId;
+  try {
+    const res  = await fetch('http://localhost:5000/run', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    jobId = data.job_id;
+  } catch (e) {
+    showError(
+      'Could not reach the Flask server at <code>localhost:5000</code>.<br>' +
+      'Make sure you ran: <code>python server.py</code> in your project folder.'
+    );
+    status.classList.remove('visible');
+    btn.disabled = false;
+    document.getElementById('runBtnText').textContent = 'Run Analysis';
+    document.getElementById('runBtnIcon').textContent = '⚡';
+    return;
+  }
+
+  // Poll /status/:jobId every second
+  const stepKeywords = ['Step 1', 'Step 2', 'Step 3', 'Step 4'];
+  let lastLogLen = 0;
+
+  while (true) {
+    await sleep(1000);
+    let poll;
+    try {
+      const r = await fetch(`http://localhost:5000/status/${jobId}`);
+      poll = await r.json();
+    } catch (_) { continue; }
+
+    const log = poll.log || [];
+    for (let i = lastLogLen; i < log.length; i++) {
+      appendLog(log[i]);
+      for (let s = 0; s < stepKeywords.length; s++) {
+        if (log[i].includes(stepKeywords[s])) setStep(s + 1);
+      }
+    }
+    lastLogLen = log.length;
+
+    if (poll.status === 'done') {
+      _lastResult = poll.result;
+      status.classList.remove('visible');
+      renderResult(poll.result);
+      break;
+    }
+    if (poll.status === 'error') {
+      status.classList.remove('visible');
+      showError(
+        'Agent error: ' + esc(poll.error || 'unknown') +
+        '<br><small>Check the log above or your terminal for details.</small>'
+      );
+      break;
+    }
+  }
+
+  btn.disabled = false;
+  document.getElementById('runBtnText').textContent = 'Run Again';
+  document.getElementById('runBtnIcon').textContent = '⚡';
+}
+
+// ─────────────────────────────────────────────
+// Render results
+// ─────────────────────────────────────────────
+function renderResult(data) {
+  const an = data.analysis;
+  const fc = an.format_comparison || {};
+
+  document.getElementById('execSummary').textContent = an.executive_summary || '';
+
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric">
+      <div class="metric-val amber">${(fc.client_word_count||0).toLocaleString()}</div>
+      <div class="metric-label">Client word count</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val blue">${(fc.avg_competitor_word_count||0).toLocaleString()}</div>
+      <div class="metric-label">Avg competitor words</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val green">${(an.content_gaps||[]).length}</div>
+      <div class="metric-label">Content gaps found</div>
+    </div>`;
+
+  document.getElementById('urlList').innerHTML =
+    (data.ai_overview_urls||[]).map((u,i) =>
+      `<li class="url-item"><span class="url-num">${i+1}</span><span title="${esc(u)}">${esc(u)}</span></li>`
+    ).join('');
+
+  const yn = v => v ? `<td class="yes">✓ Yes</td>` : `<td class="no">✗ No</td>`;
+  const total = (data.ai_overview_urls||[]).length;
+
+  document.getElementById('fmtBody').innerHTML = `
+    <tr><td>Word Count</td><td>${(fc.client_word_count||0).toLocaleString()}</td><td>avg ${(fc.avg_competitor_word_count||0).toLocaleString()}</td></tr>
+    <tr><td>FAQ Section</td>${yn(fc.client_has_faq)}<td>${fc.competitors_with_faq||0}/${total} sources</td></tr>
+    <tr><td>Tables</td>${yn(fc.client_has_table)}<td>${fc.competitors_with_table||0}/${total} sources</td></tr>
+    <tr><td>Numbered Lists</td>${yn(fc.client_has_numbered_list)}<td>—</td></tr>
+    <tr><td>Bullet Lists</td>${yn(fc.client_has_bullet_list)}<td>—</td></tr>`;
+
+  document.getElementById('gapList').innerHTML =
+    (an.content_gaps||[]).map(g =>
+      `<li class="gap-item">
+        <div class="gap-title">${esc(g.gap)}</div>
+        <div class="gap-detail">${esc(g.detail)}</div>
+      </li>`
+    ).join('');
+
+  document.getElementById('recList').innerHTML =
+    (an.recommendations||[]).map((r,i) =>
+      `<li class="rec-item">
+        <div class="rec-num">${i+1}</div>
+        <div>
+          <div class="rec-title">${esc(r.title)}</div>
+          <div class="rec-detail">${esc(r.detail)}</div>
+        </div>
+      </li>`
+    ).join('');
+
+  document.getElementById('outputSection').classList.add('visible');
+  document.getElementById('outputSection').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ─────────────────────────────────────────────
+// Download / reset
+// ─────────────────────────────────────────────
+function downloadJSON() {
+  if (!_lastResult) return;
+  const blob = new Blob([JSON.stringify(_lastResult, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (document.getElementById('outputName').value.trim() || 'gap_report') + '.json';
+  a.click();
+}
+
+function resetUI() {
+  document.getElementById('outputSection').classList.remove('visible');
+  document.getElementById('runStatus').classList.remove('visible');
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('logBox').classList.remove('visible');
+  hideError();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// init
+updateCmd();
+updateProviderHint();
+</script>
+</body>
+>>>>>>> e70bb12 (updated frontend logic and server)
 </html>
