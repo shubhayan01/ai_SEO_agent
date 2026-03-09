@@ -100,5 +100,6 @@ def job_status(job_id):
 
 
 if __name__ == "__main__":
-    print("🚀  Server running at http://localhost:5000")
-    app.run(port=5000, debug=False)
+    print("🚀  Server running!")
+    port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port, debug=False)
