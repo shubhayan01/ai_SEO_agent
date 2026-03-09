@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 AI Overview Content Gap Agent
-Justwords Screening Test — Stage 1
+Justwords Screening Test - Stage 1
 """
 
 import os, sys, json, time, glob, hashlib, argparse, requests
@@ -10,12 +11,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# force UTF-8 output on Windows so print() never crashes on special chars
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except AttributeError:
+        pass  # Python < 3.7 fallback — just continue
+
 # ──────────────────────────────────────────────
-# USAGE GUARD  (3 free runs per machine)
+# USAGE GUARD  (300 free runs per machine)
 # ──────────────────────────────────────────────
 import platform, uuid
 
 USAGE_FILE = os.path.join(os.path.dirname(__file__), ".usage_state")
+<<<<<<< HEAD
 MAX_FREE_RUNS = 3
 
 
@@ -26,6 +36,13 @@ def _machine_id():
     node_int = uuid.getnode()
     # If the least-significant bit of the most-significant byte is 1, the MAC
     # was randomly generated — skip it.
+=======
+MAX_FREE_RUNS = 300
+
+
+def _machine_id():
+    node_int = uuid.getnode()
+>>>>>>> e70bb12 (updated frontend logic and server)
     node_is_random = bool(node_int >> 40 & 1)
     raw = platform.node() + ("" if node_is_random else str(node_int))
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
@@ -52,9 +69,9 @@ def check_usage_limit():
         state = {"machine": _machine_id(), "runs": 0}
     if state["runs"] >= MAX_FREE_RUNS:
         print(
-            f"\n⛔  Trial limit reached ({MAX_FREE_RUNS} free runs).\n"
-            "    Contact the author for a licence key.\n"
-            "    Set LICENCE_KEY=<your-key> in your .env file.\n"
+            f"\n[LIMIT] Trial limit reached ({MAX_FREE_RUNS} free runs).\n"
+            "        Contact the author for a licence key.\n"
+            "        Set LICENCE_KEY=<your-key> in your .env file.\n"
         )
         key = os.getenv("LICENCE_KEY", "")
         expected = hashlib.sha256(
@@ -66,7 +83,7 @@ def check_usage_limit():
     _save_usage(state)
     runs_left = max(0, MAX_FREE_RUNS - state["runs"])
     if runs_left > 0:
-        print(f"ℹ️  Trial mode – {runs_left} free run(s) remaining after this one.\n")
+        print(f"[INFO] Trial mode - {runs_left} free run(s) remaining after this one.\n")
 
 
 # ──────────────────────────────────────────────
@@ -141,17 +158,7 @@ HEADERS = {
 
 
 def scrape_url(url: str, mock_html_path: str = None) -> dict:
-    """Scrape a URL and return structured content metadata.
-
-    Args:
-        url:            The live URL to fetch.
-        mock_html_path: Optional path to a saved .html file. When provided,
-                        reads from disk instead of making an HTTP request.
-                        Use this when rate-limited, behind a paywall, or
-                        for offline demos. Save pages via:
-                          curl -o mock_html/competitor_1.html <URL>
-                        or File → Save Page As in your browser.
-    """
+    """Scrape a URL and return structured content metadata."""
     try:
         if mock_html_path:
             print(f"    [MOCK] Reading {os.path.basename(mock_html_path)} (no HTTP request)")
@@ -184,7 +191,10 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
 
         page_text_lower = text.lower()
 
+<<<<<<< HEAD
         # like "computer", "computed", etc.
+=======
+>>>>>>> e70bb12 (updated frontend logic and server)
         import re
         has_calculator = (
             any(w in page_text_lower for w in ["calculator", "calculate"])
@@ -203,8 +213,8 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
             "has_comparison": any(
                 w in page_text_lower for w in ["vs", "versus", "compare", "comparison"]
             ),
-            "full_text": text,          # full text stored here …
-            "text_sample": text,        # … alias kept for backwards compat
+            "full_text": text,
+            "text_sample": text,
             "error": None,
         }
     except Exception as e:
@@ -228,7 +238,11 @@ def analyse_with_llm(keyword: str, client_data: dict, competitor_data: list) -> 
     openai_key    = os.getenv("OPENAI_API_KEY", "")
     groq_key      = os.getenv("GROQ_API_KEY", "")
     gemini_key    = os.getenv("GEMINI_API_KEY", "")
+<<<<<<< HEAD
     ollama_model  = os.getenv("OLLAMA_MODEL", "")  # e.g. "llama3" — no key needed
+=======
+    ollama_model  = os.getenv("OLLAMA_MODEL", "")
+>>>>>>> e70bb12 (updated frontend logic and server)
 
     if anthropic_key:
         return _claude_analyse(keyword, client_data, competitor_data, anthropic_key)
@@ -317,6 +331,7 @@ Respond ONLY in this JSON format (no markdown fences):
 }}"""
 
 
+<<<<<<< HEAD
 
 def _groq_analyse(keyword, client_data, competitor_data, api_key):
     """Groq is OpenAI-API-compatible — uses the openai SDK with a custom base_url."""
@@ -388,6 +403,8 @@ def _ollama_analyse(keyword, client_data, competitor_data, model):
     return _parse_llm_json(raw, f"Ollama({model})")
 
 
+=======
+>>>>>>> e70bb12 (updated frontend logic and server)
 def _build_prompt_short(keyword, client_data, competitor_data):
     """Condensed prompt used as fallback when the full prompt causes JSON truncation."""
     comp_lines = ""
@@ -430,6 +447,10 @@ Return this exact JSON structure:
   "executive_summary": "2-3 sentence plain English summary of the key gaps and recommendations."
 }}'''
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> e70bb12 (updated frontend logic and server)
 def _parse_llm_json(raw: str, source: str) -> dict:
     """Centralised JSON parsing with error handling for LLM output."""
     cleaned = raw.strip().replace("```json", "").replace("```", "").strip()
@@ -464,6 +485,75 @@ def _openai_analyse(keyword, client_data, competitor_data, api_key):
         response_format={"type": "json_object"},
     )
     return _parse_llm_json(resp.choices[0].message.content, "OpenAI")
+
+
+def _groq_analyse(keyword, client_data, competitor_data, api_key):
+    """Groq is OpenAI-API-compatible — uses the openai SDK with a custom base_url."""
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+
+    for attempt, prompt in enumerate([
+        _build_prompt(keyword, client_data, competitor_data),
+        _build_prompt_short(keyword, client_data, competitor_data),
+    ], 1):
+        try:
+            resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an SEO content strategist. "
+                            "Always respond with valid JSON only. No markdown, no extra text."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=4000,
+                temperature=0.1,
+            )
+            return _parse_llm_json(resp.choices[0].message.content, "Groq")
+        except RuntimeError:
+            if attempt == 2:
+                raise
+            print("  [INFO] Full prompt truncated — retrying with shorter prompt ...")
+
+
+def _gemini_analyse(keyword, client_data, competitor_data, api_key):
+    """Google Gemini via its REST API — no extra SDK needed."""
+    import urllib.request
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-1.5-flash:generateContent?key={api_key}"
+    )
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": _build_prompt(keyword, client_data, competitor_data)}]}],
+        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.2},
+    }).encode()
+    req = urllib.request.Request(url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read())
+    raw = data["candidates"][0]["content"]["parts"][0]["text"]
+    return _parse_llm_json(raw, "Gemini")
+
+
+def _ollama_analyse(keyword, client_data, competitor_data, model):
+    """Local Ollama — must have `ollama serve` running and the model pulled."""
+    payload = json.dumps({
+        "model": model,
+        "prompt": _build_prompt(keyword, client_data, competitor_data),
+        "stream": False,
+    }).encode()
+    req = requests.post(
+        "http://localhost:11434/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=120,
+    )
+    req.raise_for_status()
+    raw = req.json().get("response", "")
+    return _parse_llm_json(raw, f"Ollama({model})")
 
 
 # ──────────────────────────────────────────────
@@ -504,7 +594,7 @@ def generate_report(keyword, ai_overview_urls, client_data,
         return row
 
     def yn(v):
-        return "✓ Yes" if v else "✗ No"
+        return "Yes" if v else "No"
 
     # Title
     t = doc.add_paragraph()
@@ -550,11 +640,11 @@ def generate_report(keyword, ai_overview_urls, client_data,
     add_heading("Per-Source Format Detail", 2)
     for cd in competitor_data:
         if cd["error"]:
-            doc.add_paragraph(f"• {cd['url']} — could not scrape ({cd['error']})")
+            doc.add_paragraph(f"- {cd['url']} -- could not scrape ({cd['error']})")
             continue
         h2s = ", ".join(cd["headings"]["h2"][:5]) or "none found"
         doc.add_paragraph(
-            f"• {cd['url']}\n"
+            f"- {cd['url']}\n"
             f"  Words: {cd['word_count']} | FAQ: {yn(cd['has_faq'])} | "
             f"Table: {yn(cd['has_table'])} | Calculator: {yn(cd['has_calculator'])}\n"
             f"  Key H2s: {h2s}"
@@ -563,7 +653,10 @@ def generate_report(keyword, ai_overview_urls, client_data,
     add_heading("Identified Content Gaps")
     for gap in analysis.get("content_gaps", []):
         p = doc.add_paragraph(style="List Bullet")
+<<<<<<< HEAD
         # value of add_run() which was being discarded.
+=======
+>>>>>>> e70bb12 (updated frontend logic and server)
         gap_run = p.add_run(gap.get("gap", "") + ": ")
         gap_run.bold = True
         p.add_run(gap.get("detail", ""))
@@ -578,26 +671,23 @@ def generate_report(keyword, ai_overview_urls, client_data,
         "Report generated by AI Overview Content Gap Agent."
     ).italic = True
     doc.save(output_path)
-    print(f"[REPORT] Saved → {output_path}")
+    print(f"[REPORT] Saved -> {output_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(description="AI Overview Content Gap Agent")
-    parser.add_argument("--keyword",    required=True,
+    parser.add_argument("--keyword",      required=True,
                         help='Search keyword, e.g. "best term insurance plan India"')
-    parser.add_argument("--client-url", required=True,
-                        help="Client article URL to analyse")
-    parser.add_argument("--output",     default="gap_report.docx",
+    parser.add_argument("--client-url",   required=False, default="",
+                        help="Client article URL to analyse (optional)")
+    parser.add_argument("--output",       default="gap_report.docx",
                         help="Output .docx path (default: gap_report.docx)")
-    parser.add_argument(
-        "--mock-html-dir", default=None,
-        help=(
-            "Path to a folder of saved HTML files. Use instead of live scraping when "
-            "rate-limited, offline, or demoing. "
-            "Name files: competitor_1.html, competitor_2.html … and client.html. "
-            "Example: --mock-html-dir mock_html/"
-        ),
-    )
+    parser.add_argument("--mock-html-dir", default=None,
+                        help=(
+                            "Path to a folder of saved HTML files. Use instead of live "
+                            "scraping when rate-limited, offline, or demoing. "
+                            "Name files: competitor_1.html, competitor_2.html ... and client.html."
+                        ))
     args = parser.parse_args()
 
     output_path = args.output
@@ -607,15 +697,15 @@ def main():
 
     check_usage_limit()
 
-    print(f"\n🔍  Keyword  : {args.keyword}")
-    print(f"🔗  Client   : {args.client_url}")
+    print(f"\n[Keyword] : {args.keyword}")
+    print(f"[Client]  : {args.client_url if args.client_url else '(none)'}")
     if args.mock_html_dir:
-        print(f"📂  Mock mode: reading HTML from '{args.mock_html_dir}' (no live scraping)")
+        print(f"[Mock]    : reading HTML from '{args.mock_html_dir}' (no live scraping)")
     print()
 
     # ── Step 1: AI Overview URLs ──────────────────────────────────────────
     if args.mock_html_dir:
-        print("Step 1/4 – Mock mode: skipping live SERP, building URLs from file names …")
+        print("Step 1/4 - Mock mode: skipping live SERP, building URLs from file names ...")
         comp_files = sorted(glob.glob(os.path.join(args.mock_html_dir, "competitor_*.html")))
         if not comp_files:
             print("  ERROR: No competitor_*.html files found in --mock-html-dir.")
@@ -625,54 +715,80 @@ def main():
             for f in comp_files
         ]
     else:
-        print("Step 1/4 – Fetching AI Overview URLs …")
+        print("Step 1/4 - Fetching AI Overview URLs ...")
         ai_urls = fetch_ai_overview_urls(args.keyword)
         if not ai_urls:
             print("  No AI Overview URLs found. Try a different keyword or use a VPN set to India.")
             sys.exit(0)
+<<<<<<< HEAD
         # that appeared at the top of Step 2 in the original code.
         comp_files = [None] * len(ai_urls)
 
     # ── Step 2: Scrape competitors ────────────────────────────────────────
     print(f"\nStep 2/4 – Processing {len(ai_urls)} competitor page(s) …")
 
+=======
+        comp_files = [None] * len(ai_urls)
+
+    # ── Step 2: Scrape competitors ────────────────────────────────────────
+    print(f"\nStep 2/4 - Processing {len(ai_urls)} competitor page(s) ...")
+>>>>>>> e70bb12 (updated frontend logic and server)
     competitor_data = []
     for url, fpath in zip(ai_urls, comp_files):
-        print(f"  ↳ {url}")
+        print(f"  -> {url}")
         competitor_data.append(scrape_url(url, mock_html_path=fpath))
         if fpath is None:
             time.sleep(1)
 
     # ── Step 3: Scrape client ─────────────────────────────────────────────
-    print(f"\nStep 3/4 – Processing client URL …")
-    print(f"  ↳ {args.client_url}")
-    if args.mock_html_dir:
-        client_mock = os.path.join(args.mock_html_dir, "client.html")
-        if not os.path.exists(client_mock):
-            print(f"  ERROR: Expected client.html in {args.mock_html_dir} but not found.")
-            sys.exit(1)
-        client_data = scrape_url(args.client_url, mock_html_path=client_mock)
+    if args.client_url:
+        print(f"\nStep 3/4 - Processing client URL ...")
+        print(f"  -> {args.client_url}")
+        if args.mock_html_dir:
+            client_mock = os.path.join(args.mock_html_dir, "client.html")
+            if not os.path.exists(client_mock):
+                print(f"  ERROR: Expected client.html in {args.mock_html_dir} but not found.")
+                sys.exit(1)
+            client_data = scrape_url(args.client_url, mock_html_path=client_mock)
+        else:
+            time.sleep(1)
+            client_data = scrape_url(args.client_url)
     else:
+<<<<<<< HEAD
         time.sleep(1)
         client_data = scrape_url(args.client_url)
+=======
+        print("\nStep 3/4 - No client URL provided, skipping ...")
+        client_data = {
+            "url": "", "word_count": 0,
+            "headings": {"h1": [], "h2": [], "h3": []},
+            "has_faq": False, "has_table": False,
+            "has_numbered_list": False, "has_bullet_list": False,
+            "has_calculator": False, "has_comparison": False,
+            "full_text": "", "text_sample": "", "error": None,
+        }
+>>>>>>> e70bb12 (updated frontend logic and server)
 
     # ── Step 4: LLM analysis ──────────────────────────────────────────────
-    print("\nStep 4/4 – Running LLM gap analysis …")
+    print("\nStep 4/4 - Running LLM gap analysis ...")
     analysis = analyse_with_llm(args.keyword, client_data, competitor_data)
 
     # ── Outputs ───────────────────────────────────────────────────────────
+<<<<<<< HEAD
     # of whether the output filename contains ".docx" or not.
+=======
+>>>>>>> e70bb12 (updated frontend logic and server)
     json_path = os.path.splitext(output_path)[0] + ".json"
 
-    with open(json_path, "w") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump({
             "keyword": args.keyword,
             "client_url": args.client_url,
             "ai_overview_urls": ai_urls,
             "analysis": analysis,
             "generated_at": datetime.now().isoformat(),
-        }, f, indent=2)
-    print(f"[JSON]   Saved → {json_path}")
+        }, f, indent=2, ensure_ascii=False)
+    print(f"[JSON]   Saved -> {json_path}")
 
     generate_report(
         keyword=args.keyword,
@@ -683,9 +799,9 @@ def main():
         output_path=output_path,
     )
 
-    print("\n✅  Done!")
-    print(f"   • {output_path}")
-    print(f"   • {json_path}\n")
+    print("\n[DONE]")
+    print(f"   -> {output_path}")
+    print(f"   -> {json_path}\n")
 
 
 if __name__ == "__main__":
