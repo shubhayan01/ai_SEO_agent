@@ -571,12 +571,64 @@
     color: var(--text-2);
     overflow: hidden;
   }
-  .url-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .url-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   .url-num {
     width: 20px; height: 20px;
     background: var(--surface-3); border-radius: 4px;
     font-size: 10px; display: flex; align-items: center; justify-content: center;
     color: var(--text-3); flex-shrink: 0; font-weight: 600;
+  }
+
+  /* ── SEO Rankings ── */
+  .rank-badge {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .rank-badge.top3   { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .rank-badge.top10  { background: rgba(59,130,246,0.12); color: var(--accent); border: 1px solid rgba(59,130,246,0.25); }
+  .rank-badge.top20  { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+  .rank-badge.beyond { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); }
+
+  .rank-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rank-table th {
+    text-align: left; padding: 10px 14px;
+    background: var(--surface-3); color: var(--text-3);
+    font-weight: 500; font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .rank-table th:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .rank-table th:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+  .rank-table td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-2); vertical-align: top; }
+  .rank-table tr:last-child td { border-bottom: none; }
+  .rank-table td:first-child { font-family: var(--font-mono); font-size: 12px; }
+  .rank-table .rank-url { font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; }
+  .rank-table .rank-title { font-size: 12.5px; color: var(--text); }
+  .rank-highlight { background: rgba(59,130,246,0.04); }
+
+  .client-rank-box {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 12px;
+  }
+  .client-rank-box .crb-label { font-size: 12px; color: var(--text-3); margin-bottom: 3px; }
+  .client-rank-box .crb-url   { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); word-break: break-all; }
+  .crb-rank {
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    min-width: 56px;
+    text-align: center;
   }
 </style>
 </head>
@@ -704,6 +756,19 @@
     <div class="exec-summary" id="execSummary"></div>
 
     <div class="result-grid" id="metricsGrid"></div>
+
+    <!-- SEO Rankings -->
+    <div class="card" id="rankingsCard" style="display:none;">
+      <div class="card-title"><span class="icon icon-green">📈</span> SEO Rankings</div>
+      <div id="clientRankBox"></div>
+      <div class="section-label" style="margin-top:16px;">Top 10 Organic Results</div>
+      <table class="rank-table">
+        <thead>
+          <tr><th>#</th><th>URL</th><th>Title</th></tr>
+        </thead>
+        <tbody id="rankTableBody"></tbody>
+      </table>
+    </div>
 
     <div class="card">
       <div class="card-title"><span class="icon icon-blue">🌐</span> AI Overview Source URLs</div>
@@ -922,6 +987,64 @@ async function runAnalysis() {
   document.getElementById('runBtnIcon').textContent = '⚡';
 }
 
+function rankBadge(pos) {
+  if (!pos) return `<span class="rank-badge beyond">Not ranked</span>`;
+  if (pos <= 3)  return `<span class="rank-badge top3">#${pos} Top 3</span>`;
+  if (pos <= 10) return `<span class="rank-badge top10">#${pos} Top 10</span>`;
+  if (pos <= 20) return `<span class="rank-badge top20">#${pos} Top 20</span>`;
+  return `<span class="rank-badge beyond">#${pos}</span>`;
+}
+
+function rankColor(pos) {
+  if (!pos) return 'var(--text-3)';
+  if (pos <= 3)  return 'var(--green)';
+  if (pos <= 10) return 'var(--accent)';
+  if (pos <= 20) return 'var(--amber)';
+  return 'var(--text-2)';
+}
+
+function renderRankings(seo) {
+  if (!seo) return;
+  const card = document.getElementById('rankingsCard');
+  const top10 = seo.top10 || [];
+  const clientRankings = seo.client_rankings || {};
+
+  if (!top10.length && !Object.keys(clientRankings).length) return;
+  card.style.display = 'block';
+
+  // Client rank box
+  const crb = document.getElementById('clientRankBox');
+  const clientEntries = Object.entries(clientRankings);
+  if (clientEntries.length) {
+    crb.innerHTML = clientEntries.map(([url, pos]) => `
+      <div class="client-rank-box">
+        <div class="crb-rank" style="color:${rankColor(pos)}">${pos ? '#' + pos : '—'}</div>
+        <div>
+          <div class="crb-label">Client article organic rank</div>
+          <div class="crb-url">${esc(url)}</div>
+        </div>
+        <div style="margin-left:auto">${rankBadge(pos)}</div>
+      </div>`).join('');
+  }
+
+  // Top 10 table — highlight rows where URL matches an AI Overview source or client
+  const aiUrls = (document.getElementById('urlList').querySelectorAll('.url-item span'));
+  const aiDomains = Array.from(aiUrls).map(el => {
+    try { return new URL(el.title).hostname.replace('www.',''); } catch(_) { return ''; }
+  });
+
+  document.getElementById('rankTableBody').innerHTML = top10.map(r => {
+    let domain = '';
+    try { domain = new URL(r.url).hostname.replace('www.',''); } catch(_) {}
+    const isAI = aiDomains.some(d => d && d === domain);
+    return `<tr class="${isAI ? 'rank-highlight' : ''}">
+      <td>${rankBadge(r.position)}</td>
+      <td class="rank-url">${esc(r.url)}</td>
+      <td class="rank-title">${esc(r.title || '—')}</td>
+    </tr>`;
+  }).join('');
+}
+
 function renderResult(data) {
   const an = data.analysis || {};
   const fc = an.format_comparison || {};
@@ -977,6 +1100,7 @@ function renderResult(data) {
 
   document.getElementById('outputSection').classList.add('visible');
   document.getElementById('outputSection').scrollIntoView({ behavior:'smooth', block:'start' });
+  renderRankings(data.seo_rankings);
 }
 
 function downloadJSON() {
@@ -993,6 +1117,9 @@ function resetUI() {
   document.getElementById('runStatus').classList.remove('visible');
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('logBox').classList.remove('visible');
+  document.getElementById('rankingsCard').style.display = 'none';
+  document.getElementById('clientRankBox').innerHTML = '';
+  document.getElementById('rankTableBody').innerHTML = '';
   hideError();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
