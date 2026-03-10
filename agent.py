@@ -4,45 +4,31 @@ AI Overview Content Gap Agent
 Justwords Screening Test - Stage 1
 """
 
-import os, sys, json, time, glob, hashlib, argparse, requests
+import os, sys, json, time, glob, hashlib, argparse, requests, re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# force UTF-8 output on Windows so print() never crashes on special chars
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
     except AttributeError:
-        pass  # Python < 3.7 fallback — just continue
+        pass
 
 # ──────────────────────────────────────────────
-# USAGE GUARD  (300 free runs per machine)
+# USAGE GUARD
 # ──────────────────────────────────────────────
 import platform, uuid
 
 USAGE_FILE = os.path.join(os.path.dirname(__file__), ".usage_state")
-<<<<<<< HEAD
-MAX_FREE_RUNS = 3
-
-
-def _machine_id():
-    # Use platform.node() (hostname) as the primary stable identifier,
-    # with getnode() only as a secondary salt. Fallback to hostname-only
-    # if getnode() returns a multicast (random) MAC (bit 0 of first octet set).
-    node_int = uuid.getnode()
-    # If the least-significant bit of the most-significant byte is 1, the MAC
-    # was randomly generated — skip it.
-=======
 MAX_FREE_RUNS = 300
 
 
 def _machine_id():
     node_int = uuid.getnode()
->>>>>>> e70bb12 (updated frontend logic and server)
     node_is_random = bool(node_int >> 40 & 1)
     raw = platform.node() + ("" if node_is_random else str(node_int))
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
@@ -87,7 +73,114 @@ def check_usage_limit():
 
 
 # ──────────────────────────────────────────────
-# SERP
+# SEO RANKINGS
+# ──────────────────────────────────────────────
+
+def fetch_seo_rankings(keyword: str, urls_to_check: list) -> dict:
+    """
+    Fetch organic ranking positions for the given keyword.
+    Returns a dict with:
+      - top10: list of {position, url, title, snippet}
+      - client_rankings: {url -> position or None} for each url_to_check
+    """
+    serpapi_key = os.getenv("SERPAPI_KEY", "")
+    serper_key  = os.getenv("SERPER_KEY", "")
+
+    print("\n[SEO] Fetching organic ranking positions ...")
+
+    try:
+        if serpapi_key:
+            results = _serpapi_organic(keyword, serpapi_key)
+        elif serper_key:
+            results = _serper_organic(keyword, serper_key)
+        else:
+            print("  [SEO] No SERP key found — skipping rankings.")
+            return _empty_rankings(urls_to_check)
+    except Exception as e:
+        print(f"  [SEO] Could not fetch rankings: {e}")
+        return _empty_rankings(urls_to_check)
+
+    # Map each URL we care about to its rank
+    client_rankings = {}
+    for url in urls_to_check:
+        if not url:
+            continue
+        domain = _extract_domain(url)
+        match = next(
+            (r for r in results if _extract_domain(r["url"]) == domain),
+            None
+        )
+        if match:
+            client_rankings[url] = match["position"]
+            print(f"  [SEO] {url[:60]}... → rank #{match['position']}")
+        else:
+            client_rankings[url] = None
+            print(f"  [SEO] {url[:60]}... → not in top 100")
+
+    print(f"  [SEO] Top 10 organic results retrieved.")
+    return {
+        "top10": results[:10],
+        "client_rankings": client_rankings,
+    }
+
+
+def _serpapi_organic(keyword, api_key):
+    params = {
+        "engine": "google", "q": keyword, "api_key": api_key,
+        "gl": "in", "hl": "en", "num": 100,
+    }
+    resp = requests.get("https://serpapi.com/search", params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    return [
+        {
+            "position": r.get("position", i + 1),
+            "url":      r.get("link", ""),
+            "title":    r.get("title", ""),
+            "snippet":  r.get("snippet", ""),
+        }
+        for i, r in enumerate(data.get("organic_results", []))
+    ]
+
+
+def _serper_organic(keyword, api_key):
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    resp = requests.post(
+        "https://google.serper.dev/search",
+        headers=headers,
+        json={"q": keyword, "gl": "in", "num": 100},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return [
+        {
+            "position": r.get("position", i + 1),
+            "url":      r.get("link", ""),
+            "title":    r.get("title", ""),
+            "snippet":  r.get("snippet", ""),
+        }
+        for i, r in enumerate(data.get("organic", []))
+    ]
+
+
+def _extract_domain(url: str) -> str:
+    try:
+        from urllib.parse import urlparse
+        return urlparse(url).netloc.lower().replace("www.", "")
+    except Exception:
+        return url
+
+
+def _empty_rankings(urls_to_check):
+    return {
+        "top10": [],
+        "client_rankings": {u: None for u in urls_to_check if u},
+    }
+
+
+# ──────────────────────────────────────────────
+# SERP — AI Overview URLs
 # ──────────────────────────────────────────────
 
 def fetch_ai_overview_urls(keyword: str) -> list:
@@ -158,7 +251,6 @@ HEADERS = {
 
 
 def scrape_url(url: str, mock_html_path: str = None) -> dict:
-    """Scrape a URL and return structured content metadata."""
     try:
         if mock_html_path:
             print(f"    [MOCK] Reading {os.path.basename(mock_html_path)} (no HTTP request)")
@@ -190,12 +282,6 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
         )
 
         page_text_lower = text.lower()
-
-<<<<<<< HEAD
-        # like "computer", "computed", etc.
-=======
->>>>>>> e70bb12 (updated frontend logic and server)
-        import re
         has_calculator = (
             any(w in page_text_lower for w in ["calculator", "calculate"])
             or bool(re.search(r'\bcompute\b', page_text_lower))
@@ -238,11 +324,7 @@ def analyse_with_llm(keyword: str, client_data: dict, competitor_data: list) -> 
     openai_key    = os.getenv("OPENAI_API_KEY", "")
     groq_key      = os.getenv("GROQ_API_KEY", "")
     gemini_key    = os.getenv("GEMINI_API_KEY", "")
-<<<<<<< HEAD
-    ollama_model  = os.getenv("OLLAMA_MODEL", "")  # e.g. "llama3" — no key needed
-=======
     ollama_model  = os.getenv("OLLAMA_MODEL", "")
->>>>>>> e70bb12 (updated frontend logic and server)
 
     if anthropic_key:
         return _claude_analyse(keyword, client_data, competitor_data, anthropic_key)
@@ -331,82 +413,7 @@ Respond ONLY in this JSON format (no markdown fences):
 }}"""
 
 
-<<<<<<< HEAD
-
-def _groq_analyse(keyword, client_data, competitor_data, api_key):
-    """Groq is OpenAI-API-compatible — uses the openai SDK with a custom base_url."""
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-
-    # Try with full prompt first, fall back to a shorter prompt if JSON is truncated
-    for attempt, prompt in enumerate([
-        _build_prompt(keyword, client_data, competitor_data),
-        _build_prompt_short(keyword, client_data, competitor_data),
-    ], 1):
-        try:
-            resp = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an SEO content strategist. "
-                            "Always respond with valid JSON only. No markdown, no extra text."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=4000,
-                temperature=0.1,
-            )
-            return _parse_llm_json(resp.choices[0].message.content, "Groq")
-        except RuntimeError:
-            if attempt == 2:
-                raise
-            print("  [INFO] Full prompt truncated — retrying with shorter prompt …")
-
-
-def _gemini_analyse(keyword, client_data, competitor_data, api_key):
-    """Google Gemini via its REST API — no extra SDK needed."""
-    import urllib.request
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-1.5-flash:generateContent?key={api_key}"
-    )
-    payload = json.dumps({
-        "contents": [{"parts": [{"text": _build_prompt(keyword, client_data, competitor_data)}]}],
-        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.2},
-    }).encode()
-    req = urllib.request.Request(url, data=payload,
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read())
-    raw = data["candidates"][0]["content"]["parts"][0]["text"]
-    return _parse_llm_json(raw, "Gemini")
-
-
-def _ollama_analyse(keyword, client_data, competitor_data, model):
-    """Local Ollama — must have `ollama serve` running and the model pulled."""
-    payload = json.dumps({
-        "model": model,
-        "prompt": _build_prompt(keyword, client_data, competitor_data),
-        "stream": False,
-    }).encode()
-    req = requests.post(
-        "http://localhost:11434/api/generate",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        timeout=120,
-    )
-    req.raise_for_status()
-    raw = req.json().get("response", "")
-    return _parse_llm_json(raw, f"Ollama({model})")
-
-
-=======
->>>>>>> e70bb12 (updated frontend logic and server)
 def _build_prompt_short(keyword, client_data, competitor_data):
-    """Condensed prompt used as fallback when the full prompt causes JSON truncation."""
     comp_lines = ""
     for i, c in enumerate(competitor_data, 1):
         h2s = "; ".join(c["headings"]["h2"][:4]) or "none"
@@ -447,12 +454,8 @@ Return this exact JSON structure:
   "executive_summary": "2-3 sentence plain English summary of the key gaps and recommendations."
 }}'''
 
-<<<<<<< HEAD
-=======
 
->>>>>>> e70bb12 (updated frontend logic and server)
 def _parse_llm_json(raw: str, source: str) -> dict:
-    """Centralised JSON parsing with error handling for LLM output."""
     cleaned = raw.strip().replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(cleaned)
@@ -488,7 +491,6 @@ def _openai_analyse(keyword, client_data, competitor_data, api_key):
 
 
 def _groq_analyse(keyword, client_data, competitor_data, api_key):
-    """Groq is OpenAI-API-compatible — uses the openai SDK with a custom base_url."""
     from openai import OpenAI
     client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
@@ -520,7 +522,6 @@ def _groq_analyse(keyword, client_data, competitor_data, api_key):
 
 
 def _gemini_analyse(keyword, client_data, competitor_data, api_key):
-    """Google Gemini via its REST API — no extra SDK needed."""
     import urllib.request
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -539,7 +540,6 @@ def _gemini_analyse(keyword, client_data, competitor_data, api_key):
 
 
 def _ollama_analyse(keyword, client_data, competitor_data, model):
-    """Local Ollama — must have `ollama serve` running and the model pulled."""
     payload = json.dumps({
         "model": model,
         "prompt": _build_prompt(keyword, client_data, competitor_data),
@@ -561,7 +561,7 @@ def _ollama_analyse(keyword, client_data, competitor_data, model):
 # ──────────────────────────────────────────────
 
 def generate_report(keyword, ai_overview_urls, client_data,
-                    competitor_data, analysis, output_path):
+                    competitor_data, analysis, seo_rankings, output_path):
     from docx import Document
     from docx.shared import Pt, RGBColor, Inches
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -612,10 +612,36 @@ def generate_report(keyword, ai_overview_urls, client_data,
     add_heading("Executive Summary")
     doc.add_paragraph(analysis.get("executive_summary", "N/A"))
 
+    # ── SEO Rankings section ──────────────────────────────────────────────
+    add_heading("SEO Rankings")
+
+    client_rankings = seo_rankings.get("client_rankings", {})
+    if client_rankings:
+        add_heading("Client Article Ranking", 2)
+        for url, pos in client_rankings.items():
+            rank_str = f"#{pos}" if pos else "Not in top 100"
+            doc.add_paragraph(f"{url}\n  → Organic position: {rank_str}")
+
+    top10 = seo_rankings.get("top10", [])
+    if top10:
+        add_heading("Top 10 Organic Results", 2)
+        tbl = doc.add_table(rows=1, cols=3)
+        tbl.style = "Table Grid"
+        shaded_row(tbl, ["Position", "URL", "Title"], shade=True)
+        for r in top10:
+            shaded_row(tbl, [
+                f"#{r['position']}",
+                r['url'][:60] + ("…" if len(r['url']) > 60 else ""),
+                r['title'][:60] + ("…" if len(r['title']) > 60 else ""),
+            ])
+        doc.add_paragraph()
+
+    # ── AI Overview URLs ──────────────────────────────────────────────────
     add_heading("AI Overview Source URLs")
     for i, url in enumerate(ai_overview_urls, 1):
         doc.add_paragraph(f"{i}. {url}", style="List Number")
 
+    # ── Format analysis ───────────────────────────────────────────────────
     add_heading("Content Format Analysis")
     fc = analysis.get("format_comparison", {})
     tbl = doc.add_table(rows=1, cols=3)
@@ -650,13 +676,10 @@ def generate_report(keyword, ai_overview_urls, client_data,
             f"  Key H2s: {h2s}"
         )
 
+    # ── Gaps & Recommendations ────────────────────────────────────────────
     add_heading("Identified Content Gaps")
     for gap in analysis.get("content_gaps", []):
         p = doc.add_paragraph(style="List Bullet")
-<<<<<<< HEAD
-        # value of add_run() which was being discarded.
-=======
->>>>>>> e70bb12 (updated frontend logic and server)
         gap_run = p.add_run(gap.get("gap", "") + ": ")
         gap_run.bold = True
         p.add_run(gap.get("detail", ""))
@@ -673,6 +696,10 @@ def generate_report(keyword, ai_overview_urls, client_data,
     doc.save(output_path)
     print(f"[REPORT] Saved -> {output_path}")
 
+
+# ──────────────────────────────────────────────
+# MAIN
+# ──────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="AI Overview Content Gap Agent")
@@ -705,7 +732,7 @@ def main():
 
     # ── Step 1: AI Overview URLs ──────────────────────────────────────────
     if args.mock_html_dir:
-        print("Step 1/4 - Mock mode: skipping live SERP, building URLs from file names ...")
+        print("Step 1/5 - Mock mode: skipping live SERP, building URLs from file names ...")
         comp_files = sorted(glob.glob(os.path.join(args.mock_html_dir, "competitor_*.html")))
         if not comp_files:
             print("  ERROR: No competitor_*.html files found in --mock-html-dir.")
@@ -715,24 +742,20 @@ def main():
             for f in comp_files
         ]
     else:
-        print("Step 1/4 - Fetching AI Overview URLs ...")
+        print("Step 1/5 - Fetching AI Overview URLs ...")
         ai_urls = fetch_ai_overview_urls(args.keyword)
         if not ai_urls:
             print("  No AI Overview URLs found. Try a different keyword or use a VPN set to India.")
             sys.exit(0)
-<<<<<<< HEAD
-        # that appeared at the top of Step 2 in the original code.
         comp_files = [None] * len(ai_urls)
 
-    # ── Step 2: Scrape competitors ────────────────────────────────────────
-    print(f"\nStep 2/4 – Processing {len(ai_urls)} competitor page(s) …")
+    # ── Step 2: SEO Rankings ──────────────────────────────────────────────
+    print("\nStep 2/5 - Fetching SEO rankings ...")
+    urls_to_rank = [args.client_url] + ai_urls if args.client_url else ai_urls
+    seo_rankings = fetch_seo_rankings(args.keyword, urls_to_rank)
 
-=======
-        comp_files = [None] * len(ai_urls)
-
-    # ── Step 2: Scrape competitors ────────────────────────────────────────
-    print(f"\nStep 2/4 - Processing {len(ai_urls)} competitor page(s) ...")
->>>>>>> e70bb12 (updated frontend logic and server)
+    # ── Step 3: Scrape competitors ────────────────────────────────────────
+    print(f"\nStep 3/5 - Processing {len(ai_urls)} competitor page(s) ...")
     competitor_data = []
     for url, fpath in zip(ai_urls, comp_files):
         print(f"  -> {url}")
@@ -740,9 +763,9 @@ def main():
         if fpath is None:
             time.sleep(1)
 
-    # ── Step 3: Scrape client ─────────────────────────────────────────────
+    # ── Step 4: Scrape client ─────────────────────────────────────────────
     if args.client_url:
-        print(f"\nStep 3/4 - Processing client URL ...")
+        print(f"\nStep 4/5 - Processing client URL ...")
         print(f"  -> {args.client_url}")
         if args.mock_html_dir:
             client_mock = os.path.join(args.mock_html_dir, "client.html")
@@ -754,11 +777,7 @@ def main():
             time.sleep(1)
             client_data = scrape_url(args.client_url)
     else:
-<<<<<<< HEAD
-        time.sleep(1)
-        client_data = scrape_url(args.client_url)
-=======
-        print("\nStep 3/4 - No client URL provided, skipping ...")
+        print("\nStep 4/5 - No client URL provided, skipping ...")
         client_data = {
             "url": "", "word_count": 0,
             "headings": {"h1": [], "h2": [], "h3": []},
@@ -767,17 +786,12 @@ def main():
             "has_calculator": False, "has_comparison": False,
             "full_text": "", "text_sample": "", "error": None,
         }
->>>>>>> e70bb12 (updated frontend logic and server)
 
-    # ── Step 4: LLM analysis ──────────────────────────────────────────────
-    print("\nStep 4/4 - Running LLM gap analysis ...")
+    # ── Step 5: LLM analysis ──────────────────────────────────────────────
+    print("\nStep 5/5 - Running LLM gap analysis ...")
     analysis = analyse_with_llm(args.keyword, client_data, competitor_data)
 
     # ── Outputs ───────────────────────────────────────────────────────────
-<<<<<<< HEAD
-    # of whether the output filename contains ".docx" or not.
-=======
->>>>>>> e70bb12 (updated frontend logic and server)
     json_path = os.path.splitext(output_path)[0] + ".json"
 
     with open(json_path, "w", encoding="utf-8") as f:
@@ -785,6 +799,7 @@ def main():
             "keyword": args.keyword,
             "client_url": args.client_url,
             "ai_overview_urls": ai_urls,
+            "seo_rankings": seo_rankings,
             "analysis": analysis,
             "generated_at": datetime.now().isoformat(),
         }, f, indent=2, ensure_ascii=False)
@@ -796,6 +811,7 @@ def main():
         client_data=client_data,
         competitor_data=competitor_data,
         analysis=analysis,
+        seo_rankings=seo_rankings,
         output_path=output_path,
     )
 
