@@ -320,18 +320,18 @@ def scrape_url(url: str, mock_html_path: str = None) -> dict:
 # ──────────────────────────────────────────────
 
 def analyse_with_llm(keyword: str, client_data: dict, competitor_data: list) -> dict:
+    groq_key      = os.getenv("GROQ_API_KEY", "")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
     openai_key    = os.getenv("OPENAI_API_KEY", "")
-    groq_key      = os.getenv("GROQ_API_KEY", "")
     gemini_key    = os.getenv("GEMINI_API_KEY", "")
     ollama_model  = os.getenv("OLLAMA_MODEL", "")
 
-    if anthropic_key:
+    if groq_key:
+        return _groq_analyse(keyword, client_data, competitor_data, groq_key)
+    elif anthropic_key:
         return _claude_analyse(keyword, client_data, competitor_data, anthropic_key)
     elif openai_key:
         return _openai_analyse(keyword, client_data, competitor_data, openai_key)
-    elif groq_key:
-        return _groq_analyse(keyword, client_data, competitor_data, groq_key)
     elif gemini_key:
         return _gemini_analyse(keyword, client_data, competitor_data, gemini_key)
     elif ollama_model:
