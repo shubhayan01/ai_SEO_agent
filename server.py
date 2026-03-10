@@ -1,7 +1,5 @@
 """
 Flask bridge server for AI Overview Content Gap Agent UI
-Run: python server.py
-Then open: http://localhost:5000
 """
 
 import os, sys, json, subprocess, threading, uuid
@@ -12,7 +10,7 @@ app = Flask(__name__, static_folder=".")
 CORS(app)
 
 # Track running jobs
-jobs = {}  # job_id -> {"status": ..., "log": [...], "result": ..., "error": ...}
+jobs = {}
 
 
 @app.route("/")
@@ -24,13 +22,12 @@ def index():
 def run_analysis():
     data       = request.json or {}
     keyword    = data.get("keyword",    "").strip()
-    client_url = data.get("clientUrl",  "").strip()   # optional — empty string = not provided
+    client_url = data.get("clientUrl",  "").strip()
     output     = data.get("outputName", "gap_report").strip() or "gap_report"
     mock_dir   = data.get("mockHtmlDir","").strip()
 
     if not keyword:
         return jsonify({"error": "keyword is required"}), 400
-    # client_url is intentionally NOT required here — agent.py handles it
 
     job_id = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "running", "log": [], "result": None, "error": None}
@@ -38,7 +35,6 @@ def run_analysis():
     def worker():
         cmd = [sys.executable, "agent.py", "--keyword", keyword]
 
-        # Only add --client-url when the user toggled it on and provided a value
         if client_url:
             cmd += ["--client-url", client_url]
 
@@ -47,7 +43,6 @@ def run_analysis():
         if mock_dir:
             cmd += ["--mock-html-dir", mock_dir]
 
-        # Log the exact command being run (helpful for debugging)
         jobs[job_id]["log"].append(f"[SERVER] Running: {' '.join(cmd)}")
         print(f"[SERVER] Running: {' '.join(cmd)}")
 
@@ -100,6 +95,6 @@ def job_status(job_id):
 
 
 if __name__ == "__main__":
-    print("🚀  Server running!")
     port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port, debug=False)
+    print(f"Server running on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
