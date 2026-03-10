@@ -9,7 +9,6 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder=".")
 CORS(app)
 
-# Track running jobs
 jobs = {}
 
 
@@ -34,17 +33,14 @@ def run_analysis():
 
     def worker():
         cmd = [sys.executable, "agent.py", "--keyword", keyword]
-
         if client_url:
             cmd += ["--client-url", client_url]
-
         cmd += ["--output", f"{output}.docx"]
-
         if mock_dir:
             cmd += ["--mock-html-dir", mock_dir]
 
         jobs[job_id]["log"].append(f"[SERVER] Running: {' '.join(cmd)}")
-        print(f"[SERVER] Running: {' '.join(cmd)}")
+        print(f"[SERVER] Running: {' '.join(cmd)}", flush=True)
 
         try:
             proc = subprocess.Popen(
@@ -57,15 +53,14 @@ def run_analysis():
             for line in proc.stdout:
                 line = line.rstrip()
                 jobs[job_id]["log"].append(line)
-                print(line)
+                print(line, flush=True)
 
             proc.wait()
 
             if proc.returncode != 0:
                 jobs[job_id]["status"] = "error"
                 jobs[job_id]["error"] = (
-                    f"agent.py exited with code {proc.returncode}. "
-                    "Check the log above for details."
+                    f"agent.py exited with code {proc.returncode}."
                 )
                 return
 
@@ -76,7 +71,7 @@ def run_analysis():
                 jobs[job_id]["status"] = "done"
             else:
                 jobs[job_id]["status"] = "error"
-                jobs[job_id]["error"] = f"Output file '{json_path}' not found after run."
+                jobs[job_id]["error"] = f"Output file '{json_path}' not found."
 
         except Exception as e:
             jobs[job_id]["status"] = "error"
@@ -94,7 +89,7 @@ def job_status(job_id):
     return jsonify(job)
 
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    print(f"Server running on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+# Always runs — whether called directly or via Procfile
+port = int(os.environ.get("PORT", 5000))
+print(f"[SERVER] Starting on host=0.0.0.0 port={port}", flush=True)
+app.run(host="0.0.0.0", port=port, debug=False)
