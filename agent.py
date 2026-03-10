@@ -4,7 +4,7 @@ AI Overview Content Gap Agent
 Justwords Screening Test - Stage 1
 """
 
-import os, sys, json, time, glob, hashlib, argparse, requests, re
+import os, sys, json, time, glob, argparse, requests, re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -17,59 +17,6 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stderr.reconfigure(encoding="utf-8")
     except AttributeError:
         pass
-
-# ──────────────────────────────────────────────
-# USAGE GUARD
-# ──────────────────────────────────────────────
-import platform, uuid
-
-USAGE_FILE = os.path.join(os.path.dirname(__file__), ".usage_state")
-MAX_FREE_RUNS = 300
-
-
-def _machine_id():
-    node_int = uuid.getnode()
-    node_is_random = bool(node_int >> 40 & 1)
-    raw = platform.node() + ("" if node_is_random else str(node_int))
-    return hashlib.sha256(raw.encode()).hexdigest()[:16]
-
-
-def _load_usage():
-    if not os.path.exists(USAGE_FILE):
-        return {"machine": _machine_id(), "runs": 0}
-    try:
-        with open(USAGE_FILE) as f:
-            return json.load(f)
-    except Exception:
-        return {"machine": _machine_id(), "runs": 0}
-
-
-def _save_usage(state):
-    with open(USAGE_FILE, "w") as f:
-        json.dump(state, f)
-
-
-def check_usage_limit():
-    state = _load_usage()
-    if state.get("machine") != _machine_id():
-        state = {"machine": _machine_id(), "runs": 0}
-    if state["runs"] >= MAX_FREE_RUNS:
-        print(
-            f"\n[LIMIT] Trial limit reached ({MAX_FREE_RUNS} free runs).\n"
-            "        Contact the author for a licence key.\n"
-            "        Set LICENCE_KEY=<your-key> in your .env file.\n"
-        )
-        key = os.getenv("LICENCE_KEY", "")
-        expected = hashlib.sha256(
-            ("justwords_unlock_" + _machine_id()).encode()
-        ).hexdigest()[:24]
-        if key != expected:
-            sys.exit(1)
-    state["runs"] += 1
-    _save_usage(state)
-    runs_left = max(0, MAX_FREE_RUNS - state["runs"])
-    if runs_left > 0:
-        print(f"[INFO] Trial mode - {runs_left} free run(s) remaining after this one.\n")
 
 
 # ──────────────────────────────────────────────
@@ -721,8 +668,6 @@ def main():
     if not output_path.lower().endswith(".docx"):
         output_path += ".docx"
         print(f"[INFO] Output path adjusted to: {output_path}")
-
-    check_usage_limit()
 
     print(f"\n[Keyword] : {args.keyword}")
     print(f"[Client]  : {args.client_url if args.client_url else '(none)'}")
